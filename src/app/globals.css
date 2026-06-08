@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold: #B5935A;
+  --dark: #1a1a1a;
+  --mid: #6b6b6b;
+  --light: #f5f3ef;
+  --border: #e0dbd3;
+  --white: #ffffff;
+}
+
+body {
+  font-family: 'Jost', sans-serif;
+  background: #f8f6f2;
+  color: var(--dark);
+  min-height: 100vh;
+}
+
+input, textarea, select {
+  font-family: 'Jost', sans-serif;
+}
