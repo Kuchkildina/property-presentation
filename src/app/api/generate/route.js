@@ -39,9 +39,16 @@ Slide structure:
 4. amenities — headline = "Amenities & lifestyle", body = one sentence, kvPairs = each amenity with short description
 5. location — headline = "Prime location", body = 2 sentences about the neighbourhood, kvPairs = nearest tube, parks, airport
 6. apartment — headline = apartment type, body = "", kvPairs = price, area, floor, block/unit, completion
-7. contact — headline = "Next steps"${data.client ? `, body = "Prepared exclusively for ${data.client}."` : ', body = "We would be delighted to arrange a private viewing."'}, kvPairs = []
+7. contact — headline = "Next steps", body = "We would be delighted to arrange a private viewing.", kvPairs = []
 
 Tone: refined, understated luxury. No superlatives. Max 5 kvPairs per slide.`
+}
+
+function truncateBase64(base64, maxSizeBytes = 4 * 1024 * 1024) {
+  const bytes = Math.floor(base64.length * 0.75)
+  if (bytes <= maxSizeBytes) return base64
+  const maxChars = Math.floor(maxSizeBytes / 0.75)
+  return base64.substring(0, maxChars)
 }
 
 export async function POST(request) {
@@ -62,13 +69,13 @@ export async function POST(request) {
       if (brochureBase64) {
         contentParts.push({
           type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: brochureBase64 },
+          source: { type: 'base64', media_type: 'application/pdf', data: truncateBase64(brochureBase64) },
         })
       }
       if (priceBase64) {
         contentParts.push({
           type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: priceBase64 },
+          source: { type: 'base64', media_type: 'application/pdf', data: truncateBase64(priceBase64) },
         })
       }
       contentParts.push({
@@ -77,7 +84,6 @@ export async function POST(request) {
       })
       messages = [{ role: 'user', content: contentParts }]
     } else if (mode === 'url') {
-      // For URL mode we pass the URL as text; on a real deployment you'd use web search tool
       messages = [
         {
           role: 'user',
