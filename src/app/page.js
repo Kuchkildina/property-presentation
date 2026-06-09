@@ -252,7 +252,8 @@ p{font-size:15px;line-height:1.85;color:#555;max-width:620px;white-space:pre-lin
 .kv-item{padding:1.25rem 1.5rem;background:#f8f6f2;border-top:2px solid #B5935A}
 .kv-k{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#bbb;margin-bottom:6px}
 .kv-v{font-size:17px;font-weight:500}
-.cover{background:#1a1a1a}
+.cover{background:#1a1a1a;position:relative;overflow:hidden}
+.cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.35}
 .cover h2,.cover .kv-v{color:#fff}
 .cover p{color:#888}
 .cover .slide-num{color:#444}
@@ -442,7 +443,20 @@ ${extra}
                 </div>
                 <Field label="Amenities"><input placeholder="24h concierge, Peloton gym, cinema..." value={newDev.amenities} onChange={e => setND('amenities', e.target.value)} /></Field>
                 <Field label="Location notes"><textarea placeholder="Near Regent's Park, Hyde Park. Edgware Road tube 3 min..." value={newDev.location_notes} onChange={e => setND('location_notes', e.target.value)} /></Field>
-                <Field label="Brochure URL (Google Drive or website)"><input placeholder="https://drive.google.com/..." value={newDev.brochure_url} onChange={e => setND('brochure_url', e.target.value)} /></Field>
+               <Field label="Cover photo (facade or exterior)">
+  <label className={styles.uploadZone}>
+    <span className={styles.uploadIcon}>🏛</span>
+    <span id="cover-photo-name">Click to add cover photo</span>
+    <input type="file" accept="image/*" onChange={async e => {
+      const file = e.target.files[0]
+      if (!file) return
+      document.getElementById('cover-photo-name').textContent = file.name
+      const url = await uploadImage(file, 'covers')
+      setND('cover_photo', url)
+    }} style={{ display: 'none' }} />
+  </label>
+</Field>
+              <Field label="Brochure URL (Google Drive or website)"><input placeholder="https://drive.google.com/..." value={newDev.brochure_url} onChange={e => setND('brochure_url', e.target.value)} /></Field>
                 <button className={styles.saveBtn} onClick={saveDevelopment} disabled={dbLoading}>Save development</button>
               </>
             )}
@@ -527,6 +541,7 @@ ${extra}
             <div className={styles.slidesContainer}>
               {slides.map((s, i) => (
                 <div key={i} className={`${styles.slide} ${i === 0 ? styles.slideCover : ''}`}>
+                          ${i === 0 && selectedDev?.cover_photo ? `<img class="cover-img" src="${selectedDev.cover_photo}">` : ''}
                   <div className={styles.slideNum}>{String(s.slideNum).padStart(2, '0')} · {s.tag.toUpperCase()}</div>
                   <h2 className={styles.slideHeadline}>{s.headline}</h2>
                   {s.body && <p className={styles.slideBody}>{s.body}</p>}
