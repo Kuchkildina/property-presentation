@@ -402,3 +402,13 @@
 .saveBtn:disabled{opacity:0.45;cursor:not-allowed}
 .dbLoading{font-size:13px;color:#999;text-align:center;padding:1rem}
 .dbEmpty{font-size:13px;color:#bbb;text-align:center;padding:1.5rem}
+
+/* Photos */
+.photoPreview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.photoThumb{width:80px;height:60px;object-fit:cover;border-radius:2px}
+.floorPlanPreview{width:100%;max-height:200px;object-fit:contain;margin-top:8px;border:1px solid #e0dbd3}
+.unitImages{display:flex;gap:8px;margin-top:4px}
+.unitImages span{font-size:11px;color:#B5935A}
+.photoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem;margin-top:1.25rem}
+.photoSlide{width:100%;height:200px;object-fit:cover}
+.floorPlanSlide{width:100%;max-height:300px;object-fit:contain;margin-top:1.25rem;border:1px solid #e0dbd3}
