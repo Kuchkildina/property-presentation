@@ -370,3 +370,35 @@
   .tab { border-right: none; border-bottom: 1px solid #e0dbd3; }
   .tab:last-child { border-bottom: none; }
 }
+
+/* Database tab */
+.dbHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.dbTitle{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#888}
+.addBtn{padding:7px 16px;font-size:11px;font-family:'Jost',sans-serif;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;background:#1a1a1a;color:#fff;border:none;border-radius:3px;transition:opacity 0.2s}
+.addBtn:hover{opacity:0.8}
+.backBtn{padding:6px 0;font-size:12px;font-family:'Jost',sans-serif;cursor:pointer;background:transparent;border:none;color:#B5935A;letter-spacing:0.04em}
+.backBtn:hover{opacity:0.7}
+.devCard{display:flex;align-items:center;border:1px solid #e0dbd3;border-radius:3px;margin-bottom:0.6rem;overflow:hidden;transition:border-color 0.2s}
+.devCard:hover{border-color:#B5935A}
+.devCardActive{border-color:#B5935A;background:#fdf9f4}
+.devCardMain{flex:1;padding:0.9rem 1.1rem;cursor:pointer}
+.devName{font-size:14px;font-weight:500;color:#1a1a1a;margin-bottom:2px}
+.devAddress{font-size:12px;color:#999}
+.deleteBtn{padding:0.9rem 1rem;background:transparent;border:none;border-left:1px solid #e0dbd3;color:#ccc;cursor:pointer;font-size:16px;transition:color 0.2s}
+.deleteBtn:hover{color:#c0392b}
+.unitsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.75rem;margin-bottom:1.25rem}
+.unitCard{border:1px solid #e0dbd3;border-radius:3px;overflow:hidden;transition:border-color 0.2s;display:flex;flex-direction:column}
+.unitCard:hover{border-color:#B5935A}
+.unitCardActive{border-color:#B5935A;background:#fdf9f4}
+.unitCardMain{flex:1;padding:0.9rem 1rem;cursor:pointer}
+.unitNum{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#B5935A;margin-bottom:4px}
+.unitType{font-size:14px;font-weight:500;color:#1a1a1a;margin-bottom:4px}
+.unitPrice{font-size:15px;color:#1a1a1a;margin-bottom:2px}
+.unitDetails{font-size:11px;color:#999}
+.selectedUnit{margin-top:1.25rem;padding:1.25rem;background:#f8f6f2;border-radius:3px;border-left:2px solid #B5935A}
+.selectedUnitInfo{font-size:13px;color:#555;margin-bottom:1rem}
+.saveBtn{width:100%;padding:12px;font-size:11px;font-family:'Jost',sans-serif;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;background:#B5935A;color:#fff;border:none;border-radius:3px;margin-top:0.5rem;transition:opacity 0.2s}
+.saveBtn:hover:not(:disabled){opacity:0.85}
+.saveBtn:disabled{opacity:0.45;cursor:not-allowed}
+.dbLoading{font-size:13px;color:#999;text-align:center;padding:1rem}
+.dbEmpty{font-size:13px;color:#bbb;text-align:center;padding:1.5rem}
