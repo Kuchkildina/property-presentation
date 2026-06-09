@@ -26,30 +26,30 @@ export default function Home() {
   const [brochureName, setBrochureName] = useState('')
   const [priceName, setPriceName] = useState('')
 
-  // Database state
   const [developments, setDevelopments] = useState([])
   const [units, setUnits] = useState([])
   const [selectedDev, setSelectedDev] = useState(null)
   const [selectedUnit, setSelectedUnit] = useState(null)
   const [dbClient, setDbClient] = useState(null)
-  const [dbView, setDbView] = useState('list') // list | addDev | addUnit
+  const [dbView, setDbView] = useState('list')
   const [dbLoading, setDbLoading] = useState(false)
   const [clientName, setClientName] = useState('')
 
-  // New development form
   const [newDev, setNewDev] = useState({
     name: '', address: '', developer: '', architect: '',
     completion: '', lease: '', service_charge: '', amenities: '',
     location_notes: '', brochure_url: ''
   })
 
-  // New unit form
   const [newUnit, setNewUnit] = useState({
     unit_number: '', type: '', floor: '', block: '',
     bedrooms: '', area: '', price: '', features: ''
   })
 
-  // Manual fields
+  const [unitPhotos, setUnitPhotos] = useState([])
+  const [unitFloorPlan, setUnitFloorPlan] = useState(null)
+  const [uploadingImages, setUploadingImages] = useState(false)
+
   const [manual, setManual] = useState({
     name: '', address: '', developer: '', architect: '',
     type: '', price: '', area: '', floor: '', completion: '',
@@ -84,6 +84,15 @@ export default function Home() {
     if (data) setUnits(data)
   }
 
+  async function uploadImage(file, folder) {
+    const ext = file.name.split('.').pop()
+    const path = `${folder}/${Date.now()}.${ext}`
+    const { data, error } = await dbClient.storage.from('property-images').upload(path, file)
+    if (error) throw error
+    const { data: urlData } = dbClient.storage.from('property-images').getPublicUrl(path)
+    return urlData.publicUrl
+  }
+
   async function saveDevelopment() {
     if (!newDev.name) return
     setDbLoading(true)
@@ -99,12 +108,40 @@ export default function Home() {
   async function saveUnit() {
     if (!newUnit.unit_number || !selectedDev) return
     setDbLoading(true)
-    const { data } = await dbClient.from('units').insert([{ ...newUnit, development_id: selectedDev.id }]).select()
-    if (data) {
-      setUnits(prev => [...prev, data[0]])
-      setNewUnit({ unit_number: '', type: '', floor: '', block: '', bedrooms: '', area: '', price: '', features: '' })
-      setDbView('units')
+    setUploadingImages(true)
+
+    try {
+      let photoUrls = []
+      let floorPlanUrl = null
+
+      for (const photo of unitPhotos) {
+        const url = await uploadImage(photo, `${selectedDev.id}/photos`)
+        photoUrls.push(url)
+      }
+
+      if (unitFloorPlan) {
+        floorPlanUrl = await uploadImage(unitFloorPlan, `${selectedDev.id}/floorplans`)
+      }
+
+      const { data } = await dbClient.from('units').insert([{
+        ...newUnit,
+        development_id: selectedDev.id,
+        photos: photoUrls,
+        floor_plan: floorPlanUrl
+      }]).select()
+
+      if (data) {
+        setUnits(prev => [...prev, data[0]])
+        setNewUnit({ unit_number: '', type: '', floor: '', block: '', bedrooms: '', area: '', price: '', features: '' })
+        setUnitPhotos([])
+        setUnitFloorPlan(null)
+        setDbView('units')
+      }
+    } catch(e) {
+      alert('Error uploading images: ' + e.message)
     }
+
+    setUploadingImages(false)
     setDbLoading(false)
   }
 
@@ -169,7 +206,10 @@ export default function Home() {
           floor: selectedUnit.floor,
           block: selectedUnit.block,
           unit: selectedUnit.unit_number,
-          client: clientName
+          features: selectedUnit.features,
+          client: clientName,
+          photos: selectedUnit.photos || [],
+          floor_plan: selectedUnit.floor_plan || null
         }
       }
 
@@ -192,6 +232,11 @@ export default function Home() {
   function downloadHTML() {
     if (!slides.length) return
     const title = slides[0]?.headline || 'Property Presentation'
+
+    // Get images from selected unit if in database mode
+    const photos = tab === 'database' && selectedUnit?.photos || []
+    const floorPlan = tab === 'database' && selectedUnit?.floor_plan || null
+
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
@@ -213,15 +258,29 @@ p{font-size:15px;line-height:1.85;color:#555;max-width:620px;white-space:pre-lin
 .cover .slide-num{color:#444}
 .cover .kv-item{background:#2a2a2a}
 .cover .kv-k{color:#666}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:2rem}
+.photo-grid img{width:100%;height:260px;object-fit:cover}
+.floor-plan img{width:100%;max-height:500px;object-fit:contain;margin-top:2rem}
 @media print{.slide{page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
-${slides.map((s,i) => `<div class="slide${i===0?' cover':''}">
+${slides.map((s,i) => {
+  let extra = ''
+  if (s.tag === 'apartment' && photos.length > 0) {
+    extra += `<div class="photo-grid">${photos.map(p => `<img src="${p}" alt="Property photo">`).join('')}</div>`
+  }
+  if (s.tag === 'apartment' && floorPlan) {
+    extra += `<div class="floor-plan"><img src="${floorPlan}" alt="Floor plan"></div>`
+  }
+  return `<div class="slide${i===0?' cover':''}">
 <div class="slide-num">${String(s.slideNum).padStart(2,'0')} · ${s.tag.toUpperCase()}</div>
 <h2>${s.headline}</h2>
 ${s.body ? `<p>${s.body}</p>` : ''}
 ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"><div class="kv-k">${kv.k}</div><div class="kv-v">${kv.v}</div></div>`).join('')}</div>` : ''}
-</div>`).join('\n')}
+${extra}
+</div>`
+}).join('\n')}
 </body></html>`
+
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
     a.download = title.replace(/\s+/g, '-').toLowerCase() + '.html'
@@ -237,12 +296,11 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
         </header>
 
         <div className={styles.tabRow}>
-          {TABS.map((t, i) => (
+          {TABS.map(t => (
             <button key={t.id} className={`${styles.tab} ${tab === t.id ? styles.tabActive : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </div>
 
-        {/* Panel A — Manual */}
         {tab === 'manual' && (
           <div className={styles.panel}>
             <Field label="Development name"><input placeholder="e.g. The Broadley" value={manual.name} onChange={e => setM('name', e.target.value)} /></Field>
@@ -268,10 +326,9 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
           </div>
         )}
 
-        {/* Panel B — Upload */}
         {tab === 'upload' && (
           <div className={styles.panel}>
-            <div className={styles.infoNote}>Upload the developer's brochure PDF. For files over 5MB, use tab C with a Google Drive link instead.</div>
+            <div className={styles.infoNote}>For files over 5MB use tab C with a Google Drive link.</div>
             <Field label="Brochure PDF">
               <label className={styles.uploadZone}>
                 <span className={styles.uploadIcon}>↑</span>
@@ -294,7 +351,6 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
           </div>
         )}
 
-        {/* Panel C — URL */}
         {tab === 'url' && (
           <div className={styles.panel}>
             <div className={styles.infoNote}>Paste the developer's website URL or a Google Drive link to the brochure.</div>
@@ -308,7 +364,6 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
           </div>
         )}
 
-        {/* Panel D — Database */}
         {tab === 'database' && (
           <div className={styles.panel}>
             {dbView === 'list' && (
@@ -327,9 +382,7 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
                     <button className={styles.deleteBtn} onClick={() => deleteDevelopment(dev.id)}>×</button>
                   </div>
                 ))}
-                {developments.length === 0 && !dbLoading && (
-                  <p className={styles.dbEmpty}>No developments yet. Add your first one.</p>
-                )}
+                {developments.length === 0 && !dbLoading && <p className={styles.dbEmpty}>No developments yet. Add your first one.</p>}
               </>
             )}
 
@@ -347,6 +400,12 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
                         <div className={styles.unitType}>{unit.type}</div>
                         <div className={styles.unitPrice}>{unit.price}</div>
                         <div className={styles.unitDetails}>Floor {unit.floor} · {unit.area}</div>
+                        {(unit.photos?.length > 0 || unit.floor_plan) && (
+                          <div className={styles.unitImages}>
+                            {unit.photos?.length > 0 && <span>📷 {unit.photos.length} photo{unit.photos.length > 1 ? 's' : ''}</span>}
+                            {unit.floor_plan && <span>📐 Floor plan</span>}
+                          </div>
+                        )}
                       </div>
                       <button className={styles.deleteBtn} onClick={() => deleteUnit(unit.id)}>×</button>
                     </div>
@@ -408,7 +467,36 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
                   <Field label="Price"><input placeholder="£1,326,500" value={newUnit.price} onChange={e => setNU('price', e.target.value)} /></Field>
                 </div>
                 <Field label="Features"><input placeholder="balcony, 2 levels, city views..." value={newUnit.features} onChange={e => setNU('features', e.target.value)} /></Field>
-                <button className={styles.saveBtn} onClick={saveUnit} disabled={dbLoading}>Save unit</button>
+
+                <Field label="Photos (up to 5 images)">
+                  <label className={styles.uploadZone}>
+                    <span className={styles.uploadIcon}>📷</span>
+                    <span>{unitPhotos.length > 0 ? `${unitPhotos.length} photo(s) selected` : 'Click to add photos'}</span>
+                    <input type="file" accept="image/*" multiple onChange={e => setUnitPhotos(Array.from(e.target.files).slice(0,5))} style={{ display: 'none' }} />
+                  </label>
+                  {unitPhotos.length > 0 && (
+                    <div className={styles.photoPreview}>
+                      {unitPhotos.map((f,i) => (
+                        <img key={i} src={URL.createObjectURL(f)} alt="" className={styles.photoThumb} />
+                      ))}
+                    </div>
+                  )}
+                </Field>
+
+                <Field label="Floor plan (image)">
+                  <label className={styles.uploadZone}>
+                    <span className={styles.uploadIcon}>📐</span>
+                    <span>{unitFloorPlan ? unitFloorPlan.name : 'Click to add floor plan'}</span>
+                    <input type="file" accept="image/*,.pdf" onChange={e => setUnitFloorPlan(e.target.files[0] || null)} style={{ display: 'none' }} />
+                  </label>
+                  {unitFloorPlan && unitFloorPlan.type?.startsWith('image/') && (
+                    <img src={URL.createObjectURL(unitFloorPlan)} alt="Floor plan" className={styles.floorPlanPreview} />
+                  )}
+                </Field>
+
+                <button className={styles.saveBtn} onClick={saveUnit} disabled={dbLoading}>
+                  {uploadingImages ? 'Uploading images…' : 'Save unit'}
+                </button>
               </>
             )}
           </div>
@@ -451,6 +539,16 @@ ${s.kvPairs?.length ? `<div class="kv">${s.kvPairs.map(kv=>`<div class="kv-item"
                         </div>
                       ))}
                     </div>
+                  )}
+                  {s.tag === 'apartment' && tab === 'database' && selectedUnit?.photos?.length > 0 && (
+                    <div className={styles.photoGrid}>
+                      {selectedUnit.photos.map((p, j) => (
+                        <img key={j} src={p} alt="Property" className={styles.photoSlide} />
+                      ))}
+                    </div>
+                  )}
+                  {s.tag === 'apartment' && tab === 'database' && selectedUnit?.floor_plan && (
+                    <img src={selectedUnit.floor_plan} alt="Floor plan" className={styles.floorPlanSlide} />
                   )}
                 </div>
               ))}
